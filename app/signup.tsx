@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Modal, Image, T
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+import { createUserProfile } from '@/lib/auth';
 import Animated, { 
   FadeIn, 
   Layout,
@@ -20,14 +22,46 @@ export default function SignUpScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAppleSignUp = () => {
+  const handleAppleSignUp = async () => {
     // In a real app, implement Apple Sign Up
-    router.replace('/(tabs)');
+    // For now, simulate successful signup
+    try {
+      // Simulate getting user from Apple Sign In
+      const mockUser = {
+        id: 'apple-user-' + Date.now(),
+        email: 'user@apple.example.com'
+      };
+
+      // Create user profile in our custom table
+      const userProfile = await createUserProfile(mockUser.id, mockUser.email);
+      
+      if (userProfile) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Apple sign up error:', error);
+    }
   };
 
-  const handleGoogleSignUp = () => {
+  const handleGoogleSignUp = async () => {
     // In a real app, implement Google Sign Up
-    router.replace('/(tabs)');
+    // For now, simulate successful signup
+    try {
+      // Simulate getting user from Google Sign In
+      const mockUser = {
+        id: 'google-user-' + Date.now(),
+        email: 'user@google.example.com'
+      };
+
+      // Create user profile in our custom table
+      const userProfile = await createUserProfile(mockUser.id, mockUser.email);
+      
+      if (userProfile) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Google sign up error:', error);
+    }
   };
 
   const handleEmailSignUp = () => {
@@ -86,12 +120,41 @@ export default function SignUpScreen() {
     
     setIsLoading(true);
     
-    // Simulate account creation
-    setTimeout(() => {
+    try {
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('Supabase auth error:', authError);
+        Alert.alert('Sign Up Error', authError.message);
+        return;
+      }
+
+      if (!authData.user) {
+        Alert.alert('Sign Up Error', 'Failed to create account. Please try again.');
+        return;
+      }
+
+      // Create user profile in our custom table
+      const userProfile = await createUserProfile(authData.user.id, email.trim());
+      
+      if (!userProfile) {
+        // Profile creation failed, but auth succeeded
+        // User can still continue, but we should log this
+        console.error('Failed to create user profile, but auth succeeded');
+      }
+
       setIsLoading(false);
       setShowEmailSignUp(false);
       
-      // In a real app, this would create the account with your backend
       Alert.alert(
         'Account Created!',
         'Welcome to MindMood! Your account has been created successfully.',
@@ -102,7 +165,15 @@ export default function SignUpScreen() {
           }
         ]
       );
-    }, 2000);
+
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Sign up error:', error);
+      Alert.alert(
+        'Sign Up Error',
+        'An unexpected error occurred. Please try again.'
+      );
+    }
   };
 
   const isFormValid = fullName.trim() && email.trim() && password && confirmPassword && password === confirmPassword && !isLoading;

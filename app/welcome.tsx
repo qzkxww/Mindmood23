@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Mod
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Moon, Sun, Globe, X, Mail } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+import { createUserProfile } from '@/lib/auth';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -109,16 +111,42 @@ export default function WelcomeScreen() {
     });
   };
 
-  const handleAppleSignIn = () => {
+  const handleAppleSignIn = async () => {
     // In a real app, implement Apple Sign In
-    handleCloseModal();
-    router.push('/(tabs)');
+    try {
+      // Simulate getting user from Apple Sign In
+      const mockUser = {
+        id: 'apple-user-' + Date.now(),
+        email: 'user@apple.example.com'
+      };
+
+      // Create user profile in our custom table
+      const userProfile = await createUserProfile(mockUser.id, mockUser.email);
+      
+      handleCloseModal();
+      router.push('/(tabs)');
+    } catch (error) {
+      console.error('Apple sign in error:', error);
+    }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     // In a real app, implement Google Sign In
-    handleCloseModal();
-    router.push('/(tabs)');
+    try {
+      // Simulate getting user from Google Sign In
+      const mockUser = {
+        id: 'google-user-' + Date.now(),
+        email: 'user@google.example.com'
+      };
+
+      // Create user profile in our custom table
+      const userProfile = await createUserProfile(mockUser.id, mockUser.email);
+      
+      handleCloseModal();
+      router.push('/(tabs)');
+    } catch (error) {
+      console.error('Google sign in error:', error);
+    }
   };
 
   const handleEmailSignIn = () => {

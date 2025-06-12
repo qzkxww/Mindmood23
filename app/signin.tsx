@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, Aler
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+import { createUserProfile } from '@/lib/auth';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -23,12 +25,43 @@ export default function SignInScreen() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (authError) {
+        console.error('Supabase auth error:', authError);
+        Alert.alert('Sign In Error', authError.message);
+        return;
+      }
+
+      if (!authData.user) {
+        Alert.alert('Sign In Error', 'Failed to sign in. Please try again.');
+        return;
+      }
+
+      // Ensure user profile exists in our custom table
+      // This handles cases where users signed up before the custom table existed
+      const userProfile = await createUserProfile(authData.user.id, authData.user.email || email.trim());
+      
+      if (!userProfile) {
+        console.error('Failed to create/verify user profile, but auth succeeded');
+        // User can still continue, profile creation is not critical for sign in
+      }
+
       setIsLoading(false);
-      // In a real app, this would authenticate with your backend
       router.replace('/(tabs)');
-    }, 1500);
+
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Sign in error:', error);
+      Alert.alert(
+        'Sign In Error',
+        'An unexpected error occurred. Please try again.'
+      );
+    }
   };
 
   const handleForgotPassword = () => {
@@ -40,11 +73,7 @@ export default function SignInScreen() {
   };
 
   const handleCreateAccount = () => {
-    Alert.alert(
-      'Create Account',
-      'Sign up functionality would be implemented here.',
-      [{ text: 'OK' }]
-    );
+    router.push('/signup');
   };
 
   const isFormValid = email.trim() && password.trim();
@@ -124,7 +153,10 @@ export default function SignInScreen() {
           <TouchableOpacity
             style={[
               styles.continueButton,
-              { opacity: isFormValid && !isLoading ? 1 : 0.5 }
+              { 
+                backgroundColor: isFormValid && !isLoading ? '#3b82f6' : '#9ca3af',
+                opacity: isFormValid && !isLoading ? 1 : 0.5 
+              }
             ]}
             onPress={handleSignIn}
             disabled={!isFormValid || isLoading}
@@ -231,7 +263,6 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   continueButton: {
-    backgroundColor: '#9ca3af',
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
